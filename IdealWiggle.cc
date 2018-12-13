@@ -16,17 +16,17 @@ using namespace std;
 Double_t Wiggle(Double_t *x, Double_t *par){
   
   Double_t time     = x[0];             // Leave time values free
-  double tau       = 2200;              // Lifetime of the muon at rest (ns)
+  double tau       = 2.2;              // Lifetime of the muon at rest (ns)
   double gamma     = 29.3;              // Magic gamma
   double A         = 0.05;              // Amplitude
-  double omega     = 2 * TMath::Pi() / 4200;   // Time of a single wiggle ~ 4200 ns (omega=2pi/t)
-  double omega2     = 2 * TMath::Pi() / 5000; // Random additional high frequency with T = 1000 ns
-  double omega3     = 2 * TMath::Pi() / 500; // Random additional high frequency with T = 10000 ns
+  double omega     = 2 * TMath::Pi() / 4.2;   // Time of a single wiggle ~ 4200 ns (omega=2pi/t)
+  double omega2     = 2 * TMath::Pi() / 5; // Random additional high frequency with T = 1000 ns
+  double omega3     = 2 * TMath::Pi() / 0.5; // Random additional high frequency with T = 10000 ns
   double phase     = TMath::Pi()/2;     //Phase angle 
   double N = par[0];                        
 
-   Double_t Npositrons = N * exp( - time / (tau * gamma)) * (1 + A * cos ( (omega * time) + phase)) ;
-  // Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega2 * time) + phase) + cos( (omega3 * time) + phase)));
+  //   Double_t Npositrons = N * exp( - time / (tau * gamma)) * (1 + A * cos ( (omega * time) + phase)) ;
+   Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega2 * time) + phase) + cos( (omega3 * time) + phase)));
  return Npositrons;
 }
 
@@ -34,7 +34,7 @@ int main() {
 
   //For h1, setting nBins to 1000 and numEvents to 10000 creates an ok histogram
 
-  const double totalTime = 30.0 * 4200.0;
+  const double totalTime = 30.0 * 4.2;
 
   TF1 *f1 = new TF1("f1", Wiggle , 0 , totalTime , 1); // Book ideal wiggle plot
   f1 -> SetNpx(10000); // Prevent undersampling
@@ -48,7 +48,7 @@ int main() {
   TRandom3 *rand = new TRandom3(seed);
  
   // Loop over "events"
-  double numEvents = 1e+8;
+  double numEvents = 1e+7;
   for(int i=0; i<numEvents;i++) {
     double r1 = f1 -> GetRandom(0,totalTime);
     h1 -> Fill(r1);
@@ -80,38 +80,50 @@ int main() {
        fftResidual->SetBinError(i, hm->GetBinError(i));
   }
  
-  fftResidual->SetTitle(";Frequency [Hz];Normalised Magnitude [Arb Units]");
+  fftResidual->SetTitle(";Frequency [MHz];Normalised Magnitude [Arb Units]");
   fftResidual->SetStats(0);
   fftResidual->SetName("residualFFT");
   fftResidual->Scale(1.0 / fftResidual->Integral());
 
+
+  //Calculate Nyquist frequency, which is twice the highest frequeny in the signal or half of the sampling rate.
+  //...the maximum frequency before sampling errors start 
+ 
+  double binWidth = totalTime / nBins ;
+  double sampleRate = 1 / binWidth;
+  double nyquistFreq = 0.5 * sampleRate;
+  cout << "binWidth " <<binWidth<<" us"<<endl;
+  cout << "sampleRate " <<sampleRate<<" per us"<<endl;
+  cout << "nyquistFreq " <<nyquistFreq<<" MHz"<<endl;
+  
   TCanvas *c1 = new TCanvas();
-  gPad->SetGrid();
-  f1 -> SetTitle("Ideal Wiggle Plot;Time[ns];Log Normalised Units");
+  //  gPad->SetGrid();
+  f1 -> SetTitle("Ideal Wiggle Plot;Time [#mus];Number of Positrons");
   f1 -> Draw();
   //  c1 -> SetLogy();
-  c1 -> SaveAs("figures/IdealWiggle.pdf");
+  c1 -> SaveAs("figures/IdealWiggle.eps");
 
 
   TCanvas *c2 = new TCanvas();
   // gPad->SetGrid();
-  h1 -> SetTitle(";Time [ns];Normalised Units");
+  h1 -> SetTitle(";Time [#mus];Number of Positrons");
   h1 -> GetYaxis() -> SetMaxDigits(2);
+  h1 -> SetStats(kFALSE);
   h1 -> Draw();
   //  c2 -> SetLogy();
-  c2 -> SaveAs("figures/IdealHistogram.pdf");
+  c2 -> SaveAs("figures/IdealHistogram.eps");
 
   TCanvas *c3 = new TCanvas(); 
   //gPad->SetGrid();
   //fftResidual -> SetTitle("FFT, Injected: #mbox{2#times10^{-3}} GHz & #mbox{2#times10^{-4}} GHz, g-2 freq: #mbox{2.38#times10^{-4}} GHz;Frequency [GHz];Magnitude [norm. units]");
-  fftResidual->SetTitle("FFT, g-2 freq: #mbox{2.38#times10^{-4}} GHz;Frequency [GHz];Magitude [norm. units]"); 
-  fftResidual -> SetAxisRange(0,0.004,"X");		
+  fftResidual->SetTitle("FFT, Spin Precession Frequency: #mbox{0.238} MHz;Frequency [MHz];Magnitude"); 
+  fftResidual -> SetAxisRange(0,nyquistFreq,"X");		
   c3 -> SetLogy();
   fftResidual->GetXaxis()->SetMaxDigits(2);
   fftResidual -> SetMarkerColor(kRed+2);
   fftResidual -> SetLineColor(kRed+2);
   fftResidual -> Draw("HIST L SAME");
-  c3 -> SaveAs("figures/FFT.pdf");
+  c3 -> SaveAs("figures/FFT.eps");
 
   delete f1;
   delete h1;

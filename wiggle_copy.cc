@@ -42,18 +42,18 @@ using namespace std;
 Double_t wiggle(Double_t *x, Double_t *par){
     
   Double_t time     = x[0];             // Leave time values free
-  double tau       = 2200;              // Lifetime of the muon at rest (ns)
+  double tau       = 2.2;              // Lifetime of the muon at rest (ns)
   double gamma     = 29.3;              // Magic gamma
   double A         = 0.05;              // Amplitude
-  double omega     = 2 * TMath::Pi() / 4200;   // Time of a single wiggle ~ 4200 ns (omega=2pi/t)
-  double omega2     = 2 * TMath::Pi() / 10; // Random additional high frequency with T = 10 ns
-  double omega3     = 2 * TMath::Pi() / 10000; // Random additional low frequency with T = 10000 ns
+  double omega     = 2 * TMath::Pi() / 4.2;   // Time of a single wiggle ~ 4200 ns (omega=2pi/t)
+  double omega2     = 2 * TMath::Pi() / 0.5; // Random additional high frequency with T = 10 ns
+  double omega3     = 2 * TMath::Pi() / 5; // Random additional low frequency with T = 10000 ns
   double phase     = TMath::Pi()/2;     //Phase angle 
   double N = par[0];                        
 
   /* Decide whether to add frequencies together or not */
   // Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * cos ( (omega * time) + phase ));
-  Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega2 * time) + phase) + cos( (omega3 * time) + phase)));
+    Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega2 * time) + phase) + cos( (omega3 * time) + phase)));
 
   return Npositrons;
 }
@@ -88,8 +88,8 @@ Double_t integral(Double_t minTime, Double_t maxTime){
 // Need to insert a hi and low frequency 
 int main() {
 
-  const double binWidth = 150;
-  const double totalTime = 30.0 * 4200.0; // 30 wiggles
+  const double binWidth = 0.15;
+  const double totalTime = 30.0 * 4.2; // 30 wiggles
 
   TFile* file = new TFile("PseudoExp.root", "RECREATE"); // Create a ROOT file containing all pseudo experiments
   
@@ -187,27 +187,27 @@ int main() {
     TH1D* tTot = new TH1D("tT0", "", int(totalTime / binWidth), 0, totalTime);
 
     t0 -> SetNameTitle(t0name.c_str(), t0title.c_str());
-    t0 -> GetXaxis() -> SetTitle("Time (ns)");
+    t0 -> GetXaxis() -> SetTitle("Time (#us)");
     t0 -> GetYaxis() -> SetTitle("Number of Positrons N");
 
     t1 -> SetNameTitle(t1name.c_str(), t1title.c_str());
-    t1 -> GetXaxis() -> SetTitle("Time (ns)");
+    t1 -> GetXaxis() -> SetTitle("Time (#us)");
     t1 -> GetYaxis() -> SetTitle("Number of Positrons N");
 
     t2 -> SetNameTitle(t2name.c_str(), t2title.c_str());
-    t2 -> GetXaxis() -> SetTitle("Time (ns)");
+    t2 -> GetXaxis() -> SetTitle("Time (#us)");
     t2 -> GetYaxis() -> SetTitle("Number of Positrons N");
 
     t3 -> SetNameTitle(t3name.c_str(), t3title.c_str());
-    t3 -> GetXaxis() -> SetTitle("Time (ns)");
+    t3 -> GetXaxis() -> SetTitle("Time (#us)");
     t3 -> GetYaxis() -> SetTitle("Number of Positrons N");
 
     t4 -> SetNameTitle(t4name.c_str(), t4title.c_str());
-    t4 -> GetXaxis() -> SetTitle("Time (ns)");
+    t4 -> GetXaxis() -> SetTitle("Time (#us)");
     t4 -> GetYaxis() -> SetTitle("Number of Positrons N");
 
     tTot -> SetNameTitle(tTotname.c_str(), tTottitle.c_str());
-    tTot -> GetXaxis() -> SetTitle("Time (ns)");
+    tTot -> GetXaxis() -> SetTitle("Time (#us)");
     tTot -> GetYaxis() -> SetTitle("Number of Positrons N");
 
     // Book a histogram for difference between ideal wiggle and pseudo wiggle plots
@@ -273,7 +273,7 @@ int main() {
    f1->Write();
    TCanvas *c1 = new TCanvas();
   gPad->SetGrid();
-  f1 -> SetTitle("Functional Wiggle Plot;Time [ns];Normalised Units");
+  f1 -> SetTitle("Functional Wiggle Plot;Time [#us];Normalised Units");
   f1 -> Draw();
   c1 -> SaveAs("figures/IdealFit.pdf");
 
