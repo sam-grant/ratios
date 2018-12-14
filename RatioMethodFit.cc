@@ -33,9 +33,9 @@ Double_t myfunction(Double_t *x, Double_t *par){
   Double_t A     = par[0];
   Double_t omega = par[1];
   Double_t phase = par[2];
-  Double_t delta = 2.87E-4; // From literature SG //par[3]; // calc don't fit
+  Double_t delta = par[3];//2.87E-4; // From literature SG //par[3]; // calc don't fit
 
-  Double_t Ratio =  par[0] * cos((par[1] * x[0]) + par[2]) + delta;
+  Double_t Ratio =  par[0] * cos((par[1] * x[0]) + par[2]) + par[3]; // delta;
 
   return Ratio;
   
@@ -67,7 +67,7 @@ int main(){
   TFile* file3 = new TFile("ThreeParameterFit.root", "RECREATE");  // Create a ROOT file containg three parameter fits of the Ratio Method plots
 
   TH1D* h_amp = new TH1D("amp","", 1000, 0.049, 0.051);
-  TH1D* h_omega = new TH1D("omega","", 1000, 0.0014955, 0.0014965);
+  TH1D* h_omega = new TH1D("omega","", 1000, 1.4955,1.4965);//0.0014955, 0.0014965);
   TH1D* h_phase = new TH1D("phase","", 1000, 0, 6.2);
   
   TH1D* h_prob = new TH1D("p-value","", 110, 0, 1.1);
@@ -79,17 +79,17 @@ int main(){
   TH1D* h_chiSqPerNDF = new TH1D("chiSqPerNDF","", 100, 0, 5.);
   TH1D* h_NDF = new TH1D("ndf","", 1000, 0 - 0.5, 1000. - 0.5);
 
-  TF1 *fit = new TF1 ("fit", myfunction, 20000, 100000, 4);   // Three parameter fit
+  TF1 *fit = new TF1 ("fit", myfunction, 20, 100, 4);//20000, 100000, 4);   // Three parameter fit
 
   fit -> SetParameter(0, 1.00*0.05);
-  fit -> SetParameter(1, 1.00*(2*M_PI/4200.0));
+  fit -> SetParameter(1, 1.00*(2*M_PI/4.2));
   fit -> SetParameter(2, 1.00*3*M_PI/2.0);
-  //fit -> SetParameter(3, 2.87E-4);
+  fit -> SetParameter(3, 2.87E-4);
     
   fit -> SetParLimits(0, 0.01, 0.10);
-  fit -> SetParLimits(1, 0.0010, 0.0020);
+  fit -> SetParLimits(1, 0.10, 2.0);
   fit -> SetParLimits(2, 0.0, 2*M_PI);
-  //fit -> SetParLimits(3, 1E-3, -1E-3);
+  fit -> SetParLimits(3, 1E-3, -1E-3);
 
   fit -> SetNpx(10000);
   fit -> SetNDF(4);
@@ -129,7 +129,7 @@ int main(){
     double BinNum = h1 -> GetNbinsX();                          // Gets bin number of ratio method plot
 
     double Total_Time = h1->GetBinLowEdge(BinNum) + BinWidth;  //2100 + BinWidth * BinNum;                      // Find total time
-    
+    cout<<"total time "<<Total_Time<<endl;
     //h1-> GetXaxis() -> SetRangeUser(0,4400);
     
     h1 -> Fit(fit, "EMR+");
@@ -184,9 +184,36 @@ int main(){
       }
       
     }
+    cout<<"Bin Num "<<BinNum<<endl;
+    /* //Fourier transform the residual                                              
+    TH1 *hm =0;
+    TVirtualFFT::SetTransform(0);
+    hm=h2->FFT(hm,"MAG");
+    //Rescale x-axis by dividing by the function domain    
+    TAxis* xaxis = hm->GetXaxis();
+    double* ba = new double[BinNum+1];
+    xaxis->GetLowEdge(ba);
+    double Scale = 1./(Total_Time - 0);
+    ba[BinNum] = ba[BinNum-1] + xaxis -> GetBinWidth(BinNum);
+    for (int i = 0; i < BinNum+1; i++) {
+       ba[i] *= Scale;
+    }
 
-    
-    h2 -> Write();
+    TH1F* fftResidual = new TH1F(hm->GetName(), hm->GetTitle(), BinNum, ba);
+
+    for (int i = 0; i <= BinNum; i++) {
+      fftResidual->SetBinContent(i, hm->GetBinContent(i));
+       fftResidual->SetBinError(i, hm->GetBinError(i));
+  }
+
+  fftResidual->SetTitle(";Frequency [GHz];Magnitude");
+  fftResidual->SetStats(0);
+  fftResidual->SetName("residualFFT");
+  fftResidual->Scale(1.0 / fftResidual->Integral());
+
+  fftResidual->Write();
+  // ********************************************************************* 
+   */ h2 -> Write();
     h3 -> Write();
     h4 -> Write();
 

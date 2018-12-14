@@ -52,8 +52,8 @@ Double_t wiggle(Double_t *x, Double_t *par){
   double N = par[0];                        
 
   /* Decide whether to add frequencies together or not */
-  // Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * cos ( (omega * time) + phase ));
-    Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega2 * time) + phase) + cos( (omega3 * time) + phase)));
+   Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * cos ( (omega * time) + phase ));
+   //  Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega2 * time) + phase) + cos( (omega3 * time) + phase)));
 
   return Npositrons;
 }
