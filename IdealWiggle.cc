@@ -48,7 +48,7 @@ int main() {
 
   int nBins = 1000;
   TH1D *h1 = new TH1D("h1", "hist" , nBins , 0 , totalTime); // Book ideal histogram
-
+  TH1D *h2 = new TH1D("h2", "hist" , nBins , 0 , totalTime); //Residual
   //Instigate pseudorandom number generator 
   int seed = 12345; 
   TRandom3 *rand = new TRandom3(seed);
@@ -64,43 +64,6 @@ int main() {
   h1->Scale(1./functionIntegral);
   cout<<functionIntegral<<endl;
 
-  //get FFT of residual
-  TH1 *hm =0;
-  TVirtualFFT::SetTransform(0);
-  hm=h1->FFT(hm,"MAG"); 
-
-  //Rescale x-axis by dividing by the function domain 
-  TAxis* xaxis = hm->GetXaxis();
-  double* ba = new double[nBins+1];
-  xaxis->GetLowEdge(ba);
-  double Scale = 1./(totalTime - 0);
-  ba[nBins] = ba[nBins-1] + xaxis->GetBinWidth(nBins);
-  
-  for (int i = 0; i < nBins+1; i++) {
-       ba[i] *= Scale;
-  }
-
-  TH1F* fftResidual = new TH1F(hm->GetName(), hm->GetTitle(), nBins, ba);
-  for (int i = 0; i <= nBins; i++) {
-      fftResidual->SetBinContent(i, hm->GetBinContent(i));
-       fftResidual->SetBinError(i, hm->GetBinError(i));
-  }
- 
-  fftResidual->SetTitle(";Frequency [MHz];Normalised Magnitude [Arb Units]");
-  fftResidual->SetStats(0);
-  fftResidual->SetName("residualFFT");
-  fftResidual->Scale(1.0 / fftResidual->Integral());
-
-
-  //Calculate Nyquist frequency, which is twice the highest frequeny in the signal or half of the sampling rate.
-  //...the maximum frequency before sampling errors start 
-
-  double binWidth = totalTime / nBins ;
-  double sampleRate = 1 / binWidth;
-  double nyquistFreq = 0.5 * sampleRate;
-  cout << "binWidth " <<binWidth<<" us"<<endl;
-  cout << "sampleRate " <<sampleRate<<" per us"<<endl;
-  cout << "nyquistFreq " <<nyquistFreq<<" MHz"<<endl;
 
   
   //Perform the fit 
@@ -117,20 +80,55 @@ int main() {
 
   
   //Get the residual                                          
-  /* for (int ibin(1); ibin < BinNum; ibin++){
-      double time = h1->GetBinCenter(ibin);
-      double measured = h1->GetBinContent(ibin);
-      double error = h1->GetBinError(ibin);
-      double fitted = fit->Eval(time);
-
-      //cout << "time: " << time << ", meas: " << measured << ", err: " << error <\
-< ", fitted: " << fitted << "\n";                                                  
-
-      // meas - fitted / error                                                     
+  for (int i = 1; i < nBins; i++){
+      double time = h1->GetBinCenter(i);
+      double measured = h1->GetBinContent(i);
+      double error = h1->GetBinError(i);
+      double fitted = fit1->Eval(time);
 
       if (error > 0){
-        h2 -> SetBinContent(ibin,(measured-fitted)); //residual SG   
-  */
+        h2 -> SetBinContent(i,(measured-fitted)); //residual SG   
+      }
+  }
+
+  //get FFT of residual                                                                                                                                                                                     
+  TH1 *hm =0;
+  TVirtualFFT::SetTransform(0);
+  hm=h2->FFT(hm,"MAG");
+
+  //Rescale x-axis by dividing by the function domain                                                                                                                                                       
+  TAxis* xaxis = hm->GetXaxis();
+  double* ba = new double[nBins+1];
+  xaxis->GetLowEdge(ba);
+  double Scale = 1./(totalTime - 0);
+  ba[nBins] = ba[nBins-1] + xaxis->GetBinWidth(nBins);
+
+  for (int i = 0; i < nBins+1; i++) {
+       ba[i] *= Scale;
+  }
+
+  TH1F* fftResidual = new TH1F(hm->GetName(), hm->GetTitle(), nBins, ba);
+  for (int i = 0; i <= nBins; i++) {
+      fftResidual->SetBinContent(i, hm->GetBinContent(i));
+       fftResidual->SetBinError(i, hm->GetBinError(i));
+  }
+
+  fftResidual->SetTitle(";Frequency [MHz];Normalised Magnitude [Arb Units]");
+  fftResidual->SetStats(0);
+  fftResidual->SetName("residualFFT");
+  fftResidual->Scale(1.0 / fftResidual->Integral());
+
+
+  //Calculate Nyquist frequency, which is twice the highest frequeny in the signal or half of the sampling rate.                                                                                            
+  //...the maximum frequency before sampling errors start                                                                                                                                                   
+
+  double binWidth = totalTime / nBins ;
+  double sampleRate = 1 / binWidth;
+  double nyquistFreq = 0.5 * sampleRate;
+  cout << "binWidth " <<binWidth<<" us"<<endl;
+  cout << "sampleRate " <<sampleRate<<" per us"<<endl;
+  cout << "nyquistFreq " <<nyquistFreq<<" MHz"<<endl;
+
   TCanvas *c1 = new TCanvas();
   //  gPad->SetGrid();
   f1 -> SetTitle("Ideal Wiggle Plot;Time [#mus];Number of Positrons");
@@ -150,17 +148,25 @@ int main() {
   //  c2 -> SetLogy();
   c2 -> SaveAs("figures/IdeaHistogram.eps");
 
-  TCanvas *c3 = new TCanvas(); 
+    TCanvas *c3 = new TCanvas();
+  // gPad->SetGrid();                                                           
+  h2 -> SetTitle(";Time [#mus];Measured - Fitted");
+  h2 -> GetYaxis() -> SetMaxDigits(2);
+  h2 -> SetStats(kFALSE);
+  h2 -> Draw();                                                         
+  c3 -> SaveAs("figures/Residual.eps");
+
+  TCanvas *c4 = new TCanvas(); 
   //gPad->SetGrid();
   //fftResidual -> SetTitle("FFT, Injected: #mbox{2#times10^{-3}} GHz & #mbox{2#times10^{-4}} GHz, g-2 freq: #mbox{2.38#times10^{-4}} GHz;Frequency [GHz];Magnitude [norm. units]");
-  fftResidual->SetTitle("FFT, Spin Precession Frequency: #mbox{0.238} MHz;Frequency [MHz];Magnitude"); 
+  fftResidual->SetTitle("FFT Residual");//, Spin Precession Frequency: #mbox{0.238} MHz;Frequency [MHz];Magnitude"); 
   fftResidual -> SetAxisRange(0,nyquistFreq,"X");		
-  c3 -> SetLogy();
+  //c4 -> SetLogy();
   fftResidual->GetXaxis()->SetMaxDigits(2);
   fftResidual -> SetMarkerColor(kRed+2);
   fftResidual -> SetLineColor(kRed+2);
   fftResidual -> Draw("HIST L SAME");
-  c3 -> SaveAs("figures/FFT.eps");
+  c4 -> SaveAs("figures/residualFFT.eps");
 
   delete f1;
   delete h1;
