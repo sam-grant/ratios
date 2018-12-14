@@ -47,14 +47,14 @@ Double_t wiggle(Double_t *x, Double_t *par){
   double A         = 0.05;              // Amplitude
   double omega     = 2 * TMath::Pi() / 4.2;   // Time of a single wiggle ~ 4200 ns (omega=2pi/t)
   double omega2     = 2 * TMath::Pi() / 0.5; // Random additional high frequency with T = 10 ns
-  double omega3     = 2 * TMath::Pi() / 5; // Random additional low frequency with T = 10000 ns
+  double omega3     = 2 * TMath::Pi() / 10; // Random additional low frequency with T = 10000 ns
   double phase     = TMath::Pi()/2;     //Phase angle 
   double N = par[0];                        
 
   /* Decide whether to add frequencies together or not */
-   Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * cos ( (omega * time) + phase ));
-   //  Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega2 * time) + phase) + cos( (omega3 * time) + phase)));
-
+  //   Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * cos ( (omega * time) + phase ));
+  //  Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega3 * time) + phase) ));//+ cos( (omega3 * time) + phase)));
+  Double_t Npositrons =  N * (1 + A * (cos ( (omega * time) + phase ) + cos ( (omega3 * time) + phase) ));
   return Npositrons;
 }
 
@@ -93,7 +93,7 @@ int main() {
 
   TFile* file = new TFile("PseudoExp.root", "RECREATE"); // Create a ROOT file containing all pseudo experiments
   
-  double Ntot = 2e+11;
+  double Ntot = 2e+6;
   //Optional, set number of events. 
   // cout << "Please enter number of events: ";
   // cin >> Ntot;

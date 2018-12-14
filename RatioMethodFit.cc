@@ -59,7 +59,7 @@ int main(){
   if (file == 0) {
     
     // if we cannot open the file, print an error message and return immediatly
-    printf("Error: cannot open PseudoExp.root");
+    printf("Error: cannot open ROOT file");
     return 1;
     
   }

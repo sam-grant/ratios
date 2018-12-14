@@ -160,15 +160,15 @@ int main(){
     vector<TH1D*> tmp = GetRatioMethodHistFromPseudoExp(h1, h2, h3, h4, Total_Time , BinWidth , BinNum , 0);
 
     tmp.at(0) -> SetNameTitle(outname1.c_str(), outtitle1.c_str());
-    tmp.at(0) -> GetXaxis() -> SetTitle("Time [#us]");
+    tmp.at(0) -> GetXaxis() -> SetTitle("Time [us]");
     tmp.at(0) -> GetYaxis() -> SetTitle("R(t)");
     
     tmp.at(1) -> SetNameTitle(outname2.c_str(), outtitle2.c_str());
-    tmp.at(1) -> GetXaxis() -> SetTitle("Time [#us]");
+    tmp.at(1) -> GetXaxis() -> SetTitle("Time [us]");
     tmp.at(1) -> GetYaxis() -> SetTitle("D(t)");
     
     tmp.at(2) -> SetNameTitle(outname3.c_str(), outtitle3.c_str());
-    tmp.at(2) -> GetXaxis() -> SetTitle("Time [#us]");
+    tmp.at(2) -> GetXaxis() -> SetTitle("Time [us]");
     tmp.at(2) -> GetYaxis() -> SetTitle("S(t)");
 
     tmp.at(0) -> Write();
