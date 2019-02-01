@@ -1,6 +1,5 @@
-//A place to test things, derived from Talal/Becky's wiggle.cc 
-//All units are in us!
-//SG 2018
+/*Plots an ideal wiggle plot, fits a function, calculates residual, performs FFT of the residual , derived from Talal/Becky's wiggle.cc All units are in us!
+  SG 2018 */
 
 #include <iostream>
 #include "TH1F.h"
@@ -13,37 +12,36 @@
 
 using namespace std;
 
+
+//Wiggle fit function
 Double_t fit(Double_t *v, Double_t *par) {
   return par[0]*TMath::Exp(v[0]*par[1]) * (1+par[2]*TMath::Cos(par[3]*v[0]+par[4]));
  }
-
+//Exponential fit function
 Double_t fitExp(Double_t *v, Double_t *par) {
   return par[0]*TMath::Exp(v[0]*par[1]);
  }
-					     
-							  
+
+// Wiggle function - can inject a small signal 
 Double_t Wiggle(Double_t *x, Double_t *par){
   
   Double_t time     = x[0];             // Leave time values free
-  double tau       = 2.2;              // Lifetime of the muon at rest (ns)
+  double tau       = 2.2;              // Lifetime of the muon at rest (us)
   double gamma     = 29.3;              // Magic gamma
   double A         = 0.05;              // Amplitude
-  double omega     = 2 * TMath::Pi() / 4.2;   // Time of a single wiggle ~ 4200 ns (omega=2pi/t)
-  double omega2     = 2 * TMath::Pi() / 1; // Random additional high frequency with T = 1000 ns
-  double omega3     = 2 * TMath::Pi() / 0.5; // Random additional high frequency with T = 10000 ns
+  double omega     = 2 * TMath::Pi() / 4.2;   // Time of a single wiggle ~ 4.2 us
+  double omega2     = 2 * TMath::Pi() / 0.2; // Random additional frequency
   double phase     = TMath::Pi()/2;     //Phase angle 
   double N = par[0];                        
 
-    Double_t Npositrons = N * exp( - time / (tau * gamma)) * (1 + A * cos ( (omega * time) + phase)) ;
-  //   Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) +  0.1 * (cos ( (omega2 * time) + phase))));// + cos( (omega3 * time) + phase)));
+  //    Double_t Npositrons = N * exp( - time / (tau * gamma)) * (1 + A * cos ( (omega * time) + phase)) ;
+  Double_t Npositrons =  N * exp(- time / (tau * gamma) ) * (1 + A * (cos ( (omega * time) + phase ) +  0.1 * (cos ( (omega2 * time) + phase))));
  return Npositrons;
 
 }
 
 int main() {
-
-  //For h1, setting nBins to 1000 and numEvents to 10000 creates an ok histogram
-
+  // 30x wiggles (900 spin precessions)
   const double totalTime = 30.0 * 4.2;
 
   TF1 *f1 = new TF1("f1", Wiggle , 0 , totalTime , 1); // Book ideal wiggle plot
@@ -51,31 +49,31 @@ int main() {
   f1 -> SetParameter(0,1); // You have to force the normalisation to be one.
 
   int nBins = 1000;
+  
   TH1D *h1 = new TH1D("h1", "hist" , nBins , 0 , totalTime); // Book ideal histogram
-  TH1D *h2 = new TH1D("h2", "hist" , nBins , 0 , totalTime); //Residual
+  TH1D *h2 = new TH1D("h2", "hist" , nBins , 0 , totalTime); // Book residual
+
   //Instigate pseudorandom number generator 
-  int seed = 12345;//54321;//12345; 
+  int seed = 12345; 
   TRandom3 *rand = new TRandom3(seed);
  
   // Loop over "events"
   double numEvents = 1e+8;
 
-  // cout << "Please enter the number of pseudo experiements: " << endl;
-  // cin >>  numEvents;
-
-  // Use 1e+7 for original fit
-  for(int i=0; i<numEvents;i++) {
-    double r1 = f1 -> GetRandom(0,totalTime);
+  for(int i=0; i < numEvents; i++) {
+    double r1 = f1 -> GetRandom(0, totalTime);
     h1 -> Fill(r1);
   }  
   
-  double functionIntegral = f1->Integral(0,totalTime);
-  h1->Scale(1./functionIntegral);
-  cout<<functionIntegral<<endl;
+  double functionIntegral = f1 -> Integral(0, totalTime);
+  h1 -> Scale(1./functionIntegral);
+  cout << "function integral " << functionIntegral << endl;
   
   //Perform the fits 
-  TF1 *fit1 = new TF1("fit1",fit,0,totalTime,5);
-  TF1 *fit2 = new TF1("fit2",fitExp,0,totalTime,2);
+  TF1 *fit1 = new TF1("fit1", fit, 0, totalTime, 5);
+  // Usually uneeded exponetial fit
+  TF1 *fit2 = new TF1("fit2", fitExp, 0, totalTime, 2);
+
   fit1 -> SetNpx(10000);
   fit1 -> SetNpx(10000);
   fit1 -> SetLineWidth(1);
@@ -90,11 +88,11 @@ int main() {
   else if (numEvents == 1e+8) {
     // If pure
     fit1 -> SetParLimits(0, 3.5e3, 4.5e3);
-  //Fit parameters 1e+8 events if 1 MHz injected
-  // fit1 -> SetParLimits(2,0.040,0.050);
+    //Fit parameters 1e+8 events if 1 MHz injected
+    // fit1 -> SetParLimits(2,0.040,0.050);
    fit1 -> SetParLimits(3,1.4,1.5);
   }
-  else {
+  else { 
     cout << "Fit parameters for this number of events do not exists, sorry.  SG"<<endl;
   }
 
@@ -102,43 +100,44 @@ int main() {
   
   //Get the residual                                          
   for (int i = 1; i < nBins; i++){
-      double time = h1->GetBinCenter(i);
-      double measured = h1->GetBinContent(i);
-      double error = h1->GetBinError(i);
-      double fitted = fit1->Eval(time);
+
+      double time = h1 -> GetBinCenter(i);
+      double measured = h1 -> GetBinContent(i);
+      double error = h1 -> GetBinError(i);
+      double fitted = fit1 -> Eval(time);
 
       if (error > 0){
-        h2 -> SetBinContent(i,(measured-fitted)); //residual SG   
+        h2 -> SetBinContent(i, measured-fitted); //residual SG   
       }
   }
 
   //get FFT of residual                                                       
-  TH1 *hm =0;
+  TH1 *hm = 0;
   TVirtualFFT::SetTransform(0);
-  hm=h2->FFT(hm,"MAG");
+  hm = h2 -> FFT(hm, "MAG");
 
   //Rescale x-axis by dividing by the function domain
               
-  TAxis* xaxis = hm->GetXaxis();
-  double* ba = new double[nBins+1];
-  xaxis->GetLowEdge(ba);
+  TAxis *xaxis = hm -> GetXaxis();
+  double *ba = new double[nBins+1];
+  xaxis -> GetLowEdge(ba);
   double Scale = 1./(totalTime - 0);
-  ba[nBins] = ba[nBins-1] + xaxis->GetBinWidth(nBins);
+  ba[nBins] = ba[nBins-1] + xaxis -> GetBinWidth(nBins);
 
-  for (int i = 0; i < nBins+1; i++) {
+  for (int i = 0; i < nBins + 1; i++) {
        ba[i] *= Scale;
   }
  
-  TH1F* fftResidual = new TH1F(hm->GetName(), hm->GetTitle(), nBins, ba);
+  TH1F* fftResidual = new TH1F(hm -> GetName(), hm -> GetTitle(), nBins, ba);
   for (int i = 0; i <= nBins; i++) {
-      fftResidual->SetBinContent(i, hm->GetBinContent(i));
-       fftResidual->SetBinError(i, hm->GetBinError(i));
+      fftResidual -> SetBinContent(i, hm -> GetBinContent(i));
+       fftResidual -> SetBinError(i, hm -> GetBinError(i));
   }
   
-  fftResidual->SetTitle(";Frequency [MHz];Normalised Magnitude [Arb Units]");
-  fftResidual->SetStats(0);
-  fftResidual->SetName("residualFFT");
-  fftResidual->Scale(1.0 / fftResidual->Integral());
+  fftResidual -> SetTitle(";Frequency [MHz];Normalised Magnitude [Arb Units]");
+  fftResidual -> SetStats(0);
+  fftResidual -> SetName("residualFFT");
+  fftResidual -> Scale(1.0 / fftResidual -> Integral());
  
 
   //Calculate Nyquist frequency, which is twice the highest frequeny in the signal or half of the sampling rate.                                                                                            
@@ -170,8 +169,8 @@ int main() {
   //fit2 -> Draw("SAME");
   //  c2 -> SetLogy();
   //  c2 -> SaveAs("figures/injected_1MHz_1e7/injectedFittedHistogram.eps");
-  // c2 -> SaveAs("figures/injected_1MHz_1e8/injectedFittedHistogram.eps");
-  c2 -> SaveAs("figures/pure_1e8/fittedHistogram.eps");
+   c2 -> SaveAs("figures/injected_2_1e8/injectedFittedHistogram.eps");
+  //  c2 -> SaveAs("figures/pure_1e8/fittedHistogram.eps");
   
   TCanvas *c3 = new TCanvas();
   // gPad->SetGrid();
@@ -180,22 +179,22 @@ int main() {
   h2 -> GetYaxis() -> SetMaxDigits(2);
   h2 -> SetStats(kFALSE);
   h2 -> Draw();                                                         
-  // c3 -> SaveAs("figures/injected_1MHz_1e7/residualInjected.eps");
-  // c3 -> SaveAs("figures/injected_1MHz_1e8/residualInjected.eps");
-  c3 -> SaveAs("figures/pure_1e8/residual.eps");
+  //   c3 -> SaveAs("figures/injected_1MHz_1e7/residualInjected.eps");
+   c3 -> SaveAs("figures/injected_2_1e8/residualInjected.eps");
+  // c3 -> SaveAs("figures/pure_1e8/residual.eps");
   
   TCanvas *c4 = new TCanvas(); 
   fftResidual->SetTitle("FFT of Residual;Frequency [MHz];Magnitude");//, Spin Precession Frequency: #mbox{0.238} MHz;Frequency [MHz];Magnitude"); 
-  fftResidual -> SetAxisRange(0,nyquistFreq,"X");		
+  //  fftResidual -> SetAxisRange(0,nyquistFreq,"X");		
   //c4 -> SetLogy();
   fftResidual -> GetYaxis() -> SetMaxDigits(2);
   fftResidual->GetXaxis()->SetMaxDigits(2);
   fftResidual -> SetMarkerColor(kRed+2);
   fftResidual -> SetLineColor(kRed+2);
   fftResidual -> Draw("HIST L SAME");
-  //  c4 -> SaveAs("figures/injected_1Mhz_1e8/residualInjectedFFT.eps");
+    c4 -> SaveAs("figures/injected_2_1e8/residualInjectedFFT.pdf");
   //  c4 -> SaveAs("figures/injected_1MHz_1e7/residualInjectedFFT.eps");
-  c4 -> SaveAs("figures/pure_1e8/residuaFFT.eps");
+  // c4 -> SaveAs("figures/pure_1e8/residuaFFT.eps");
 
   delete f1;
   delete h1;
@@ -205,5 +204,7 @@ int main() {
   delete c3;
   delete hm;
   delete fftResidual;
+  delete fit1;
+  delete fit2;
   return 0;  
 }
